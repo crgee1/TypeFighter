@@ -17,10 +17,10 @@ export class GameEndMultiModal extends Component {
     }
 
     render() {
-        let { modalType, currentUser, sessionWpm, winner, myOwnWPM, enemyWPM } = this.props;
-        const winnerDisplay = winner === 1 ? 
+        let { currentUser, myOwnWPM, enemyWPM } = this.props;
+        const winnerDisplay = myOwnWPM > enemyWPM ? 
             <div className='gameend-multi__modal-winner'>YOU WIN</div> : 
-                winner === 0 ? <div className='gameend-multi__modal-winner'>DRAW</div> : 
+            myOwnWPM === enemyWPM ? <div className='gameend-multi__modal-winner'>DRAW</div> : 
                 <div className='gameend-multi__modal-winner'>YOU LOSE</div>
         return (
             <div className="gameend-single__modal-container">
@@ -36,7 +36,7 @@ export class GameEndMultiModal extends Component {
             LIFETIME WPM: 116
           </p> */}
                     <div className="gameend-single__modal-btn-container">
-                        <Link to="/options/single" className="gameend-single__modal-btn" onClick={() => this.handleClick('replay')}>REPLAY</Link>
+                        {/* <Link to="/options/single" className="gameend-single__modal-btn" onClick={() => this.handleClick('replay')}>REPLAY</Link> */}
                         <Link to="/select" className="gameend-single__modal-btn" onClick={this.props.closeModal} onClick={() => this.handleClick('menu')}>BACK TO MENU</Link>
                     </div>
 

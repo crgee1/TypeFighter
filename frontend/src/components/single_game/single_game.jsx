@@ -1,23 +1,5 @@
 import React, { Component } from 'react'
-// import '../../util/player1';
 import $ from 'jquery';
-
-
-// document.addEventListener('DOMContentLoaded', () => {
-//   var $ken = $('.player1');
-//   var $kenPos, $fireballPos;
-  
-//   const punch = function () {
-//     $ken.addClass('punch');
-//     setTimeout(function () { $ken.removeClass('punch'); }, 150);
-//   };
-//   $('#a').click(punch);
-// });
-
-
-
-
-
 
 export class SingleGame extends Component {
   constructor(props) {
@@ -39,13 +21,14 @@ export class SingleGame extends Component {
     this.handleInput = this.handleInput.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.createWordsDisplay = this.createWordsDisplay.bind(this);
+    this.correctInputDisplay = this.correctInputDisplay.bind(this);
+    this.incorrectInputDisplay = this.incorrectInputDisplay.bind(this);
+    this.resetInputDisplay = this.resetInputDisplay.bind(this);
     this.updateUserOutput = this.updateUserOutput.bind(this);
     this.startTimer = this.startTimer.bind(this);
     this.calculateWPM = this.calculateWPM.bind(this);
 
-
-    // Moves
-
+    // moves
     this.callPlayer1Animation = this.callPlayer1Animation.bind(this);
     this.punch = this.punch.bind(this);
     this.kick = this.kick.bind(this);
@@ -54,7 +37,6 @@ export class SingleGame extends Component {
     this.hadoken = this.hadoken.bind(this);
     this.shoryuken = this.shoryuken.bind(this);
     this.jump = this.jump.bind(this);
-    // this.kneel = this.kneel.bind(this);
     this.walkLeft = this.walkLeft.bind(this);
     this.walkRight = this.walkRight.bind(this);
   }
@@ -88,11 +70,9 @@ export class SingleGame extends Component {
       });
       openModal('gameend-single-modal');
     }
-
   }
   
   startTimer() {
-
     const startSeconds = this.state.gameTime;
     const startTime = Date.now()
     let timer = setInterval(() => {
@@ -102,24 +82,12 @@ export class SingleGame extends Component {
         gameTime: startSeconds - timePassed,
         elapsedTime: timePassed
       }), () => {
-        if (startSeconds === timePassed){
+        if (startSeconds <= timePassed){
           clearInterval(timer)
         }
       }) 
     }, 1000);
-
-    // let timer = setInterval(() => {
-    //   if (this.state.gameTime > 0) {
-    //     this.setState((prevState) => ({
-    //       gameTime: prevState.gameTime - 1,
-    //       elapsedTime: prevState.elapsedTime + 1
-    //     }))
-    //   } else {
-    //     clearInterval(timer);
-    //   }
-    // }, 1000);
   }
-
 
   createWordsArray() {
     let words = this.props.gamePassage.split(' ');
@@ -140,18 +108,17 @@ export class SingleGame extends Component {
       currentWord: currentWord,
       wordCount: wordCount
     });
-
   }
 
    async handleInput(e) {
     if (this.state.gameTime !== 0) {
       let wordSoFar = e.target.value;
  
-       await this.setState({
-         currentInput: wordSoFar
-       });
-       this.updateUserOutput();
-       this.handleSubmit();
+      await this.setState({
+        currentInput: wordSoFar
+      });
+      this.updateUserOutput();
+      this.handleSubmit();
     }
   }
   
@@ -164,16 +131,18 @@ export class SingleGame extends Component {
     let elapsedTime = this.state.elapsedTime;
 
     let currentWPM = ((numCorrectWords / 5 / elapsedTime) * 60).toFixed(0);
-    // debugger;
     this.setState({
       currentWPM: currentWPM
     });
   }
 
   handleSubmit() {
-    // update initialWords, correctWords, currentWord, clear input
     let { currentWord, currentInput} = this.state;
     
+    if (currentWord.length > currentInput.length) {
+      this.resetInputDisplay();
+    }
+
     if (currentWord === currentInput) {
       let soundEffects = [
         new Audio('assets/audio/01-punch.mp3'), 
@@ -186,16 +155,11 @@ export class SingleGame extends Component {
       ];
       let randomSound = soundEffects[Math.floor(Math.random() * soundEffects.length)];
       randomSound.play();
-      // LOL
 
-      // ANIMATION
+      // animation
       this.callPlayer1Animation();
-    
-
-      
-      
-      
-      // ANIMATION
+      this.resetInputDisplay();
+      this.correctInputDisplay();
 
       let correctWords = [...this.state.correctWords];
       correctWords.push(this.state.currentWord);
@@ -211,7 +175,10 @@ export class SingleGame extends Component {
         correctWords: correctWords,
         currentWord: this.state.initialWords[0]
       });
-      console.log(this.state)
+    }
+
+    if (currentWord.length < currentInput.length) {
+      this.incorrectInputDisplay();
     }
   }
 
@@ -330,11 +297,6 @@ export class SingleGame extends Component {
     setTimeout(function () { $ken.addClass('down'); }, 500);
     setTimeout(function () { $ken.removeClass('jump down'); }, 1000);
   };
-  // kneel() {
-  //   let $ken = $('.player1');
-  //   let $kenPos, $fireballPos;
-  //   $ken.addClass('kneel');
-  // };
   walkLeft() {
     let $ken = $('.player1');
     let $kenPos, $fireballPos;
@@ -345,6 +307,25 @@ export class SingleGame extends Component {
     let $kenPos, $fireballPos;
     $ken.addClass('walk').css({ marginLeft: '+=10px' });
   };
+
+  correctInputDisplay() {
+    let input = document.querySelector(".game__input-box");
+    
+    input.classList.add('input__bg--green');
+    setTimeout(() => {
+      input.classList.remove('input__bg--green');
+    }, 200);
+  }
+  
+  incorrectInputDisplay() {
+    let input = document.querySelector(".game__input-box");
+    input.classList.add('input__bg--red');
+  }
+    
+  resetInputDisplay() {
+    let input = document.querySelector(".game__input-box");
+    input.classList.remove('input__bg--red');
+  }
 
   render() {
     let { currentUser, openModal, updateUser, updateSingleGameWpm } = this.props;

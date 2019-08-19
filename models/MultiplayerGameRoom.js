@@ -12,11 +12,9 @@ const MultiplayerGameRoomSchema = new Schema({
         ref: 'users',
         default: null
     },
-    passageId: {
-        type: Number,
+    passage: {
+        type: String,
         required: true,
-        // default: Math.floor(Math.random() * (7 - 0 + 1)) + 0,
-        default: 7,
     },
     date: {
         type: Date,
@@ -24,5 +22,7 @@ const MultiplayerGameRoomSchema = new Schema({
         default: Date.now
     }
 })
+
+
 
 module.exports = MultiplayerGameRoom = mongoose.model('multiplayerGameRooms', MultiplayerGameRoomSchema);

@@ -27,6 +27,7 @@ class MultiGame extends Component {
       enemyHealthBarDisplay: 250,
       enemyWPM: 0,
       enemyId: "",
+      twoPlayers: true,
     }
 
 
@@ -44,12 +45,15 @@ class MultiGame extends Component {
     this.calculateWPM = this.calculateWPM.bind(this);
     this.calculateHealthBarDecrement = this.calculateHealthBarDecrement.bind(this);
     this.updateHealthBarDisplay = this.updateHealthBarDisplay.bind(this);
-    // this.gameOver = this.gameOver.bind(this);
-
-
+    this.correctInputDisplay = this.correctInputDisplay.bind(this);
+    this.incorrectInputDisplay = this.incorrectInputDisplay.bind(this);
+    this.resetInputDisplay = this.resetInputDisplay.bind(this);
+    this.removeGameRoom = this.removeGameRoom.bind(this);
 
     // Moves
 
+
+    // moves
     this.callPlayerAnimation = this.callPlayerAnimation.bind(this);
     this.punch = this.punch.bind(this);
     this.kick = this.kick.bind(this);
@@ -58,60 +62,93 @@ class MultiGame extends Component {
     this.hadoken = this.hadoken.bind(this);
     this.shoryuken = this.shoryuken.bind(this);
     this.jump = this.jump.bind(this);
-    // this.kneel = this.kneel.bind(this);
     this.walkLeft = this.walkLeft.bind(this);
     this.walkRight = this.walkRight.bind(this);
   }
 
   openSocket() {
-    this.state.socket.on("gameroom", data => {
+    this.state.socket.on(this.props.activeGameRoom.id, data => {
       if (data.myUserId !== this.props.currentUser.id) {
         
         this.setState({ ownHealthBar: data.enemyHealthBar, 
           enemyWPM: data.myCurrentWPM, 
           enemyId: data.myUserId })
       }
-    })
+      if (data.players.length >= 3) {
+        this.setState({twoPlayers: false})
+      }
+    });
+
+    let data = {
+      gameRoomId: this.props.activeGameRoom.id,
+      myUserId: this.props.currentUser.id,
+      enemyHealthBar: this.state.enemyHealthBar,
+      myCurrentWPM: this.state.currentWPM,
+    }
+    this.state.socket.emit("gameRoom", data);
   }
 
-  componentWillUnmount() {
-    this.state.socket.disconnect();
-    if (this.props.gameRoom) {
+  removeGameRoom(e) {
+    if (e) {
+      e.preventDefault();
+    }
+      let gameOver = this.state.gameTime <= this.state.elapsedTime;
+      let activeGameRoom = this.props.activeGameRoom.id ? true : false;
+      let twoPlayers = this.props.activeGameRoom.player1Id && this.props.activeGameRoom.player2Id;
+
+    if (activeGameRoom) {
       let deleteData = {
-        gameRoomId: this.props.gameRoom.id,
+        gameRoomId: this.props.activeGameRoom.id,
         currentUserId: this.props.currentUser.id
       }
       this.props.deleteGameRoom(deleteData);
     }
+    
+    if (!gameOver) {
+      this.props.history.push('/options/multi');
+    }
+  }
+
+  componentWillUnmount() {
+    let data = {
+      gameRoomId: this.props.activeGameRoom.id,
+      myUserId: null,
+      enemyHealthBar: this.state.enemyHealthBar,
+      myCurrentWPM: this.state.currentWPM,
+    }
+    this.state.socket.emit("gameRoom", data);
+    this.state.socket.disconnect();
+    this.removeGameRoom();
+    window.removeEventListener('beforeunload', this.removeGameRoom);
   }
 
   componentDidMount() {
-    this.props.fetchPassage(this.props.gameRoom.passageId)
+    window.onbeforeunload = this.removeGameRoom;
+    window.addEventListener('beforeunload', this.removeGameRoom);
     // Sockets
     this.openSocket();
-    // this.setState({modal: true})
-    this.props.openModal('gamestart-multi-modal')
-    console.log('open socket')
+    if (!this.props.activeGameRoom.id) {
+      this.props.history.push('/options/multi');
+    } else {
+      this.props.openModal('gamestart-multi-modal')
+    }
 
     // Gameplay
     this.createWordsArray();
-    console.log(this.state);
     setTimeout(() => {
       this.calculateHealthBarDecrement();
     }, 1000);
   }
 
   componentDidUpdate(prevProps, prevState) {
-    let { currentUser, openModal, updateMultiGameWpm, updateUser, deleteGameRoom, gameRoom } = this.props;
-    
-    // if (prevState !== this.state && !this.state.modal) this.setState({modal: this.props.modal})
+    let { currentUser, openModal, updateMultiGameWpm, updateUser, activeGameRoom } = this.props;
     if (this.props.modal === null && this.state.elapsedTime === 0) this.startTimer();
     if (prevState.ownHealthBar > this.state.ownHealthBar) {
       this.callPlayerAnimation('player2');
       this.updateHealthBarDisplay();
     }
 
-    if (!this.state.modal && (this.state.ownHealthBar === 0 || this.state.enemyHealthBar === 0 || this.state.gameTime === 0)) {
+    if (!this.state.modal && (this.state.ownHealthBar === 0 || this.state.enemyHealthBar === 0 || this.state.gameTime <= 0 || (!this.state.twoPlayers && this.state.elapsedTime > 0) )) {
       this.setState({ modal: true });
       updateMultiGameWpm({ myOwnWPM: parseInt(this.state.currentWPM), enemyWPM: parseInt(this.state.enemyWPM), });
       let updateLoss;
@@ -130,6 +167,7 @@ class MultiGame extends Component {
       };
       updateUser(updatedUser);
       openModal('gameend-multi-modal');
+      this.removeGameRoom();
     }
   }
 
@@ -139,30 +177,12 @@ class MultiGame extends Component {
     if (newEnemyHealthBar <= 0) {
       newEnemyHealthBar = 0;
     }
-
-    let data = {
-      myUserId: this.props.currentUser.id,
-      enemyHealthBar: newEnemyHealthBar,
-      myCurrentWPM: this.state.currentWPM,
-    }
-    this.state.socket.emit("gameroom", data)
     this.setState({enemyHealthBar: newEnemyHealthBar});
   }
 
-
-  // ////////
-  // // Gameplay
-  // ////////
-  // gameOver(type) {
-  //   // Stop player input
-  //   // Show game win/lose modal
-  //   // Render player game stats
-  //   // Give option to play again
-  //   // Update player stats in DB
-  // }
-
   createWordsDisplay() {
-    let wordsArr = this.props.gamePassage.split(' ').map((word, idx) => {
+    let passage = this.props.activeGameRoom.passage || ''
+    let wordsArr = passage.split(' ').map((word, idx) => {
       return <span key={idx} id={idx} className="word__span">{word}&nbsp;</span>
     })
 
@@ -179,26 +199,16 @@ class MultiGame extends Component {
         gameTime: startSeconds - timePassed,
         elapsedTime: timePassed
       }), () => {
-        if (startSeconds === timePassed) {
+        if (startSeconds <= timePassed) {
           clearInterval(timer)
         }
       })
     }, 1000);
-    // let timer = setInterval(() => {
-    //   if (this.state.gameTime > 0) {
-    //     this.setState((prevState) => ({
-    //       gameTime: prevState.gameTime - 1,
-    //       elapsedTime: prevState.elapsedTime + 1
-    //     }))
-    //   } else {
-    //     clearInterval(timer);
-    //   }
-    // }, 1000);
   }
 
-
   createWordsArray() {
-    let words = this.props.gamePassage.split(' ');
+    let passage = this.props.activeGameRoom.passage || ''
+    let words = passage.split(' ');
     let wordCount = words.length;
 
     let initialWords = words.map((word, idx) => {
@@ -255,10 +265,15 @@ class MultiGame extends Component {
   }
   
   handleSubmit() {
-    // update initialWords, correctWords, currentWord, clear input
     let { currentWord, currentInput } = this.state;
-    // debugger;
+    
+    if (currentWord.length > currentInput.length) {
+      this.resetInputDisplay();
+    }
+
     if (currentWord === currentInput) {
+
+      // audio
       let soundEffects = [
         new Audio('assets/audio/01-punch.mp3'),
         new Audio('assets/audio/02-punch.mp3'),
@@ -268,39 +283,46 @@ class MultiGame extends Component {
         new Audio('assets/audio/06-punch.mp3'),
         new Audio('assets/audio/07-punch.mp3'),
       ];
-      // LOL
       let randomSound = soundEffects[Math.floor(Math.random() * soundEffects.length)];
       randomSound.play();
 
-
-      // ANIMATION
+      // animation
       this.callPlayerAnimation('player1');
-      // ANIMATION
-
-
-
-
+      // health bar
       this.updateHealthBarDisplay();
-
+      // input rendering
+      this.resetInputDisplay();
+      this.correctInputDisplay();
+      // update live WPM
+      this.calculateWPM();
+      
+      // update correct words in local state
       let correctWords = [...this.state.correctWords];
       correctWords.push(this.state.currentWord);
       let lastCorrectIdx = [...this.state.correctWords].length;
-
-      // Update class for correct Words
+      // color correct words
       let word = document.getElementById(`${lastCorrectIdx}`);
       word.classList.add('word__span--correct')
-      this.calculateWPM();
+      
+      // update local state with new values (next word)
       this.setState({
         currentInput: '',
         initialWords: this.state.initialWords.slice(1),
         correctWords: correctWords,
         currentWord: this.state.initialWords[0]
       }, () => {
-          this.handleHealthBarUpdate();
+        // update healthbar on successful state update
+        this.handleHealthBarUpdate();
       })
+    }
+
+    // red input on incorrect word
+    if (currentWord.length < currentInput.length) {
+      this.incorrectInputDisplay();
     }
   }
 
+  // update health bar for both players
   updateHealthBarDisplay() {
     let ownHealth = this.state.ownHealthBar;
     let enemyHealth = this.state.enemyHealthBar;
@@ -312,9 +334,17 @@ class MultiGame extends Component {
       ownHealthBarDisplay: ownBarDisplayPos,
       EnemyHealthBarDisplay: enemyBarDisplayPos,
     })
+    let data = {
+      gameRoomId: this.props.activeGameRoom.id,
+      myUserId: this.props.currentUser.id,
+      enemyHealthBar: this.state.enemyHealthBar,
+      myCurrentWPM: this.state.currentWPM,
+    }
+    this.state.socket.emit("gameRoom", data);
   }
 
 
+  // character animations (randomized)
   callPlayerAnimation(player) {
 
     let moves = ["punch", "kick", "rkick", "tatsumaki", "hadoken", "shoryuken", "jump", "kneel", "walkLeft", "walkRight"];
@@ -380,6 +410,7 @@ class MultiGame extends Component {
     $ken.addClass('kick');
     setTimeout(function () { $ken.removeClass('kick'); }, 500);
   };
+
   rkick(player) {
     let $ken;
     if (player === 'player1') {
@@ -391,6 +422,7 @@ class MultiGame extends Component {
     $ken.addClass('reversekick');
     setTimeout(function () { $ken.removeClass('reversekick'); }, 500);
   };
+
   tatsumaki(player) {
     let $ken;
     if (player === 'player1') {
@@ -403,6 +435,7 @@ class MultiGame extends Component {
     setTimeout(function () { $ken.addClass('down'); }, 1500);
     setTimeout(function () { $ken.removeClass('tatsumaki down'); }, 2000);
   };
+
   hadoken(player) {
     let $ken;
     if (player === 'player1') {
@@ -441,6 +474,7 @@ class MultiGame extends Component {
 
     }, (250));
   };
+
   shoryuken(player) {
     let $ken;
     if (player === 'player1') {
@@ -453,6 +487,7 @@ class MultiGame extends Component {
     setTimeout(function () { $ken.addClass('down'); }, 500);
     setTimeout(function () { $ken.removeClass('shoryuken down'); }, 1000);
   };
+
   jump() {
     let $ken = $('.player1');
     let $kenPos, $fireballPos;
@@ -460,11 +495,7 @@ class MultiGame extends Component {
     setTimeout(function () { $ken.addClass('down'); }, 500);
     setTimeout(function () { $ken.removeClass('jump down'); }, 1000);
   };
-  // kneel() {
-  //   let $ken = $('.player1');
-  //   let $kenPos, $fireballPos;
-  //   $ken.addClass('kneel');
-  // };
+
   walkLeft(player) {
     let $ken;
     if (player === 'player1') {
@@ -475,6 +506,7 @@ class MultiGame extends Component {
     let $kenPos, $fireballPos;
     $ken.addClass('walk').css({ marginLeft: '-=10px' });
   };
+
   walkRight(player) {
     let $ken;
     if (player === 'player1') {
@@ -485,6 +517,28 @@ class MultiGame extends Component {
     let $kenPos, $fireballPos;
     $ken.addClass('walk').css({ marginLeft: '+=10px' });
   };
+
+  // green input box
+  correctInputDisplay() {
+    let input = document.querySelector(".game__input-box");
+    
+    input.classList.add('input__bg--green');
+    setTimeout(() => {
+      input.classList.remove('input__bg--green');
+    }, 200);
+  }
+  
+  // red input box
+  incorrectInputDisplay() {
+    let input = document.querySelector(".game__input-box");
+    input.classList.add('input__bg--red');
+  }
+  
+  // default input box
+  resetInputDisplay() {
+    let input = document.querySelector(".game__input-box");
+    input.classList.remove('input__bg--red');
+  }
 
   render() {
     let { currentUser, openModal, updateSingleGameWpm, updateUser, selectUser } = this.props;
@@ -500,14 +554,12 @@ class MultiGame extends Component {
               <div className="multigame__top-stats-wrapper">
                 <div className="multigame__top-player">
                   <div className="multigame__player-name">{currentUser.username}</div>
-                  {/* {(this.state.ownHealthBar).toFixed(2)}% */}
 
                   <div className="multigame__player-health" style={{backgroundPosition: `${this.state.ownHealthBarDisplay}px`}}>
                   </div>
                   <div className="multigame__player-wpm">WPM: {this.state.currentWPM }</div>
                 </div>
                 <div className="multigame__top-timer">
-                  <h3 className="multigame__top-timer-text">Timer</h3>
                   <h4 className="multigame__top-time">00:{this.state.gameTime > 9 ? this.state.gameTime : `0${this.state.gameTime}`}</h4>
                 </div>
                 <div className="multigame__top-player">

@@ -3,7 +3,7 @@ import MultiGame from './multi_game';
 import { setGameTime, updateMultiGameWpm, fetchPassage } from '../../actions/game_actions';
 import { openModal } from '../../actions/modal_actions';
 import { updateUser } from '../../actions/user_actions';
-import { deleteGameRoom } from '../../actions/game_room_actions.js'
+import { deleteGameRoom, fetchActiveGameRoom } from '../../actions/game_room_actions.js'
 import { selectUser } from '../../reducers/selectors';
 
 const msp = state => {
@@ -11,8 +11,9 @@ const msp = state => {
     gameTime: state.entities.game.time,
     gamePassage: state.entities.game.passage || "",
     currentUser: state.session.user,
+    activeGameRoom: state.ui.activeGameRoom,
     modal: state.ui.modal,
-    gameRoom: Object.values(state.entities.gameRooms)[0] || {},
+    gameRooms: Object.values(state.entities.gameRooms) || {},
     selectUser: (userId) => selectUser(state, userId)
   })
 }
@@ -24,10 +25,8 @@ const mdp = dispatch => {
     openModal: type => dispatch(openModal(type)),
     updateUser: (stats) => dispatch(updateUser(stats)),
     deleteGameRoom: (deleteData) => dispatch(deleteGameRoom(deleteData)),
-    fetchPassage: (passageId) => dispatch(fetchPassage(passageId))
-
+    fetchActiveGameRoom: (gameRoomId) => dispatch(fetchActiveGameRoom(gameRoomId)),
   })
 }
 
-// export default connect(msp, mdp)(MultiGame);
 export default connect(msp, mdp)(MultiGame);
