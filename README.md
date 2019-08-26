@@ -196,6 +196,6 @@ A challenge we ran into was starting a game simultaneously for both players as s
 * Rendering animations for a visually appealing experience
 
 ## Bonus Features
-- [ ] Advanced animation
-- [ ] Complete log of match history
-- [ ] Multiple lobbies
+* Advanced animation
+* Complete log of match history
+* Multiple lobbies
