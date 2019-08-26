@@ -27,13 +27,12 @@ Users always can access to the leaderboard. There are two separate leaderboards,
 
 <br/> 
 
-## Functionality and MVP
-- [ ] `User Auth` - Users can create and sign into their account on our application. Advantage for doing so will be for statistics and leaderboard positioning
-- [ ] `Gameplay` - A smooth gameplay experience that will allow users to race against time or another opponent through typing.
-- [ ] `Single Player` - Single player gameplay will allow users to beat their personal bests and others on a scale of wpm. 
-- [ ] `Multiplayer` - Users will face each other. Wins will allow them to climb the all time wins leaderboard
-- [ ] `Leaderboard` - (2) types of leaderboards. One will be for single player gameplay that will be based on wpms, while the other will be for the multiplayer game mode and be based on all-time total wins
-- [ ] `Match History` - Users will be able to display their match history and the challengers they faced. 
+## Functionality and Features
+* `User Auth` - Users can create and sign into their account on our application. Advantage for doing so will be for statistics and leaderboard positioning
+* `Gameplay` - A smooth gameplay experience that will allow users to race against time or another opponent through typing.
+* `Single Player` - Single player gameplay will allow users to beat their personal bests and others on a scale of wpm. 
+* `Multiplayer` - Users will face each other. Wins will allow them to climb the all time wins leaderboard
+* `Leaderboard` - (2) types of leaderboards. One will be for single player gameplay that will be based on wpms, while the other will be for the multiplayer game mode and be based on all-time total wins
 
 ## Technologies and Technical Challenges
 
